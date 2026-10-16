@@ -1,0 +1,34 @@
+[
+  {
+    "id": "R1",
+    "topic": "Pollution-based environmental compensation",
+    "summary": "Indian regulators can levy environmental compensation on industrial units whose pollution load exceeds permitted limits, scaled by the size of the unit, the severity of the pollution, and how long it continues. Compensation is a polluter-pays instrument, so a longer period of excess emissions increases exposure.",
+    "source_name": "CPCB environmental compensation framework",
+    "source_url": "TODO: add the primary source URL",
+    "status": "PLACEHOLDER paraphrase. Verify wording and add the source link before submission."
+  },
+  {
+    "id": "R2",
+    "topic": "Energy efficiency trading",
+    "summary": "Under India's Perform, Achieve and Trade (PAT) scheme, designated energy-intensive consumers that beat their specific energy consumption targets can earn tradable energy saving certificates, while those that miss targets must buy certificates or face penalties. Wasted fuel from a degrading machine therefore reduces certificate earnings or increases purchase need.",
+    "source_name": "Bureau of Energy Efficiency, PAT scheme",
+    "source_url": "TODO: add the primary source URL",
+    "status": "PLACEHOLDER paraphrase. Verify wording and add the source link before submission."
+  },
+  {
+    "id": "R3",
+    "topic": "Stack emission standards and monitoring",
+    "summary": "Industrial units are required to keep stack emissions of pollutants such as particulate matter, SO2 and NOx within prescribed standards, and larger units are expected to monitor and report continuously. Persistent exceedance can lead to notices, closure directions or financial penalties.",
+    "source_name": "Environment (Protection) Rules, emission standards",
+    "source_url": "TODO: add the primary source URL",
+    "status": "PLACEHOLDER paraphrase. Verify wording and add the source link before submission."
+  },
+  {
+    "id": "R4",
+    "topic": "Cost of deferred maintenance (modelling assumption)",
+    "summary": "Demo assumption, not a regulation: unrepaired combustion defects are modelled as reducing efficiency over time, increasing fuel burn and emissions per unit of output. The carbon and NOx exposure rates used in this prototype are illustrative proxies for regulatory exposure.",
+    "source_name": "TerraVow modelling assumption",
+    "source_url": "n/a",
+    "status": "Assumption. Disclosed in the app under 'How this is calculated'."
+  }
+]
