@@ -1,0 +1,35 @@
+[
+  {
+    "id": "R1",
+    "topic": "Pollution-based environmental compensation",
+    "summary": "Indian regulators can levy environmental compensation on industrial units whose pollution load exceeds permitted limits, scaled by the size of the unit, the severity of the pollution, and how long it continues. Compensation is a polluter-pays instrument, so a longer period of excess emissions increases exposure.",
+    "source_name": "CPCB environmental compensation framework",
+    "source_url": "TODO: add the primary source URL",
+    "status": "PLACEHOLDER paraphrase, not yet verified. Verify wording and add the source link before submission, or remove."
+  },
+  {
+    "id": "R2",
+    "topic": "Carbon credit trading (successor to PAT energy certificates)",
+    "summary": "India's Carbon Credit Trading Scheme (CCTS), administered by the Bureau of Energy Efficiency, is gradually replacing the Perform, Achieve and Trade (PAT) energy-efficiency scheme for notified sectors, which include pulp and paper and cement. Covered entities have legally binding emissions-intensity targets, measured in tonnes of CO2e per unit of product. Entities that beat their target can earn tradable Carbon Credit Certificates, and those that miss it must buy certificates. A degrading machine that raises emissions per unit of product therefore reduces credit earnings or increases the number of certificates a plant must buy.",
+    "source_name": "Bureau of Energy Efficiency, Carbon Credit Trading Scheme; ICAP summary of the Indian CCTS",
+    "source_url": "https://beeindia.gov.in/show_content.php?lang=1&level=1&ls_id=189&lid=294",
+    "also_see": "https://icapcarbonaction.com/en/ets/indian-carbon-credit-trading-scheme",
+    "status": "Paraphrased from the BEE page and the ICAP summary, retrieved 17 Oct 2026. Only notified sectors above the thresholds are obligated entities. Re-read the primary notification before relying on any figure."
+  },
+  {
+    "id": "R3",
+    "topic": "Stack emission standards and monitoring",
+    "summary": "Industrial units are required to keep stack emissions of pollutants such as particulate matter, SO2 and NOx within prescribed standards, and larger units are expected to monitor and report continuously. Persistent exceedance can lead to notices, closure directions or financial penalties.",
+    "source_name": "Environment (Protection) Rules, emission standards",
+    "source_url": "TODO: add the primary source URL",
+    "status": "PLACEHOLDER paraphrase, not yet verified. Verify wording and add the source link before submission, or remove."
+  },
+  {
+    "id": "R4",
+    "topic": "Cost of deferred maintenance (modelling assumption)",
+    "summary": "Demo assumption, not a regulation: unrepaired combustion defects are modelled as reducing efficiency over time, increasing fuel burn and emissions per unit of output. The carbon and NOx exposure rates used in this prototype are illustrative stand-ins for the value of carbon credits or penalty exposure, and are not market prices.",
+    "source_name": "TerraVow modelling assumption",
+    "source_url": "n/a",
+    "status": "Assumption. Disclosed in the app under 'How this is calculated'."
+  }
+]
