@@ -1,0 +1,17 @@
+{
+  "before": {
+    "file": "before.jpg",
+    "label": "Soot-caked burner nozzle",
+    "notes": "Burner flame has turned yellow-orange over the last two weeks. Stack temperature up 18 C. Heavy soot found on the nozzle and swirl vanes at last inspection. Fuel use up about 5% for the same steam output."
+  },
+  "after_same": {
+    "file": "after_same.jpg",
+    "label": "Same nozzle, cleaned",
+    "notes": "Nozzle cleaned and swirl vanes replaced. Flame is blue and stable again."
+  },
+  "after_different": {
+    "file": "after_different.jpg",
+    "label": "A different part (should be rejected)",
+    "notes": "Part cleaned and refurbished."
+  }
+}

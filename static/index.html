@@ -1,0 +1,770 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TerraVow: fix it now, or wait?</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2312262B'/%3E%3Cpath d='M7 22 L13 12 L18 18 L25 8' fill='none' stroke='%23E5A13A' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EDF0F1; --panel:#FAFBFB; --ink:#12262B; --steel:#566A70; --rule:#CBD4D6; --wash:#F2F5F5;
+  --cost:#B8740A; --cost-soft:#F4E5C8;
+  --allow:#0F766E; --ask:#3B5B8C; --block:#A4133C;
+  --allow-bg:#D9EFEC; --ask-bg:#DFE7F3; --block-bg:#F6DCE3;
+  --banner:#12262B; --banner-ink:#EEF4F4; --banner-dim:#9DB3B8; --banner-rule:#2C4A51;
+  --pill-fix:#F2B84B; --pill-fix-ink:#2B1B00; --pill-wait:#BCD0F0; --pill-wait-ink:#10213D;
+  --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --paper:#0C1719; --panel:#142326; --ink:#E6EEEF; --steel:#93A7AC; --rule:#2B3F44; --wash:#101E21;
+    --cost:#E5A13A; --cost-soft:#3A2D12;
+    --allow:#4FD1C0; --ask:#8FB0E8; --block:#F27A9C;
+    --allow-bg:#10332F; --ask-bg:#1B2A44; --block-bg:#3C1623;
+    --banner:#0A1214; --banner-ink:#EAF1F2; --banner-dim:#8FA6AB; --banner-rule:#27424A;
+  }
+}
+*{box-sizing:border-box}
+html{color-scheme:light dark;scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 15px/1.55 var(--body)}
+h1,h2,h3{font-family:var(--display);font-weight:600;letter-spacing:.2px;margin:0}
+button,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--ask);outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);border:0}
+[hidden]{display:none!important}
+
+/* ---------- top bar ---------- */
+.top{display:flex;flex-wrap:wrap;gap:10px 24px;align-items:center;justify-content:space-between;
+  padding:12px clamp(16px,3vw,36px);background:var(--panel);border-bottom:1px solid var(--rule)}
+.brand{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.brand h1{font-size:30px;line-height:1}
+.brand p{margin:0;color:var(--steel);font-size:14px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{font-size:12.5px;padding:3px 10px;border:1px solid var(--rule);border-radius:999px;background:var(--paper);color:var(--steel)}
+.chip b{color:var(--ink);font-weight:600}
+.chip.ok{border-color:var(--allow)}
+.chip.warn{border-color:var(--block);color:var(--block)}
+
+/* ---------- shell ---------- */
+.shell{display:grid;grid-template-columns:344px minmax(0,1fr);gap:20px;padding:20px clamp(16px,3vw,36px) 40px;max-width:1520px;margin:0 auto}
+@media (max-width:980px){.shell{grid-template-columns:minmax(0,1fr)}}
+.shell > *{min-width:0}
+.rail > *{min-width:0}
+.rail{align-self:start;position:sticky;top:16px;display:grid;gap:16px}
+@media (max-width:980px){.rail{position:static;order:2}}
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:16px 18px}
+.card h2{font-size:21px}
+.sub{color:var(--steel);font-size:13.5px;margin:2px 0 12px}
+.note{font-size:12.5px;color:var(--steel);margin:10px 0 0}
+
+/* ---------- fleet rail ---------- */
+.fleet{list-style:none;margin:0;padding:0}
+.fleet li{border-top:1px solid var(--rule)}
+.fleet button{all:unset;box-sizing:border-box;display:grid;grid-template-columns:24px minmax(0,1fr) auto;column-gap:10px;row-gap:1px;width:100%;
+  padding:9px 6px;cursor:pointer;border-radius:5px}
+.fleet button:hover{background:var(--wash)}
+.fleet button:focus-visible{outline:3px solid var(--ask)}
+.fleet button[aria-current="true"]{background:var(--wash);box-shadow:inset 3px 0 0 var(--cost)}
+.fleet .rk{grid-column:1;grid-row:1/3;font-family:var(--display);font-size:22px;color:var(--steel);align-self:center;text-align:center}
+.fleet .nm{grid-column:2;grid-row:1;font-weight:600;line-height:1.25}
+.fleet .df{grid-column:2;grid-row:2;color:var(--steel);font-size:12.5px;line-height:1.3}
+.fleet .rs{grid-column:3;grid-row:1/3;font-family:var(--display);font-size:20px;text-align:right;align-self:center;white-space:nowrap;line-height:1.1}
+.fleet .rs small{display:block;font:400 11.5px var(--body);color:var(--steel)}
+.bar{height:4px;background:var(--rule);border-radius:2px;grid-column:2/4;grid-row:3;margin-top:5px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--cost)}
+@media (max-width:980px){
+  .fleet{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;scroll-snap-type:x proximity}
+  .fleet li{border:1px solid var(--rule);border-radius:8px;min-width:230px;scroll-snap-align:start}
+}
+.tag{display:inline-block;font-size:11.5px;padding:0 7px;border-radius:3px;font-weight:600;margin-left:4px}
+.tag.fix{background:var(--cost-soft);color:var(--cost)}
+.tag.wait{background:var(--ask-bg);color:var(--ask)}
+.impact .v{font-family:var(--display);font-size:36px;font-weight:600;line-height:1.05;color:var(--allow);font-variant-numeric:tabular-nums}
+.impact .l{font-size:13px;color:var(--steel);margin:0 0 10px}
+
+/* ---------- decision banner ---------- */
+.banner{background:var(--banner);color:var(--banner-ink);border-radius:10px;padding:20px 24px;display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:22px}
+@media (max-width:900px){.banner{grid-template-columns:1fr}}
+.banner .eyebrow{color:var(--banner-dim);font-size:13.5px;margin:0}
+.banner h2{font-size:38px;line-height:1.05;margin:2px 0 8px}
+.pill{display:inline-block;font-family:var(--display);font-size:22px;font-weight:700;letter-spacing:.3px;padding:1px 14px;border-radius:4px;vertical-align:middle;margin-left:12px}
+.pill.fix{background:var(--pill-fix);color:var(--pill-fix-ink)}
+.pill.wait{background:var(--pill-wait);color:var(--pill-wait-ink)}
+.pill.ok{background:#8FE0D2;color:#06302B}
+.banner .why{margin:0;font-size:16px;max-width:60ch}
+.kpis{display:grid;grid-template-columns:1fr 1fr;border-left:1px solid var(--banner-rule)}
+@media (max-width:900px){.kpis{border-left:0;border-top:1px solid var(--banner-rule);padding-top:12px}}
+.kpi{padding:2px 0 10px 20px}
+@media (max-width:900px){.kpi{padding-left:0}}
+.kpi .v{font-family:var(--display);font-size:32px;font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums}
+.kpi .v.hot{color:var(--pill-fix)}
+.kpi .l{font-size:12.5px;color:var(--banner-dim)}
+
+/* ---------- guide ---------- */
+.guide{margin-top:14px;border:1px dashed var(--steel);border-radius:8px;padding:12px 16px;background:var(--panel);display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;justify-content:space-between}
+.guide h3{font-size:19px}
+.guide ol{margin:4px 0 0;padding-left:20px;color:var(--steel);font-size:13.5px}
+.guide ol b{color:var(--ink)}
+
+/* ---------- steps ---------- */
+.steps{display:flex;gap:6px;margin:16px 0 12px;overflow-x:auto;padding-bottom:2px}
+.steps button{display:flex;align-items:center;gap:8px;white-space:nowrap;border:1px solid var(--rule);background:var(--panel);border-radius:999px;padding:6px 14px 6px 8px;cursor:pointer;font-weight:600;font-size:14px}
+.steps button .n{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--wash);color:var(--steel);font-family:var(--display);font-size:16px}
+.steps button[aria-selected="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.steps button[aria-selected="true"] .n{background:var(--cost);color:#1c1200}
+.steps button.done .n{background:var(--allow);color:#fff}
+.steps button.done[aria-selected="true"] .n{background:var(--allow);color:#fff}
+.panel{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:18px 20px}
+.panel > h2{font-size:24px}
+.pnav{display:flex;justify-content:space-between;gap:10px;margin-top:18px;padding-top:14px;border-top:1px solid var(--rule)}
+
+/* ---------- controls ---------- */
+.btn{cursor:pointer;border:0;border-radius:5px;padding:9px 16px;font-weight:600;background:var(--ink);color:var(--paper)}
+.btn:disabled{opacity:.55;cursor:progress}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--ink)}
+.btn.small{padding:5px 11px;font-size:13px}
+.btn.link{background:none;border:0;color:var(--ask);padding:4px 2px;text-decoration:underline}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px}
+label.f{display:block;font-weight:600;font-size:13.5px;margin:12px 0 4px}
+textarea{width:100%;min-height:84px;padding:8px 10px;border:1px solid var(--rule);border-radius:5px;background:var(--wash);resize:vertical}
+.drop{display:grid;place-items:center;text-align:center;min-height:150px;border:2px dashed var(--steel);border-radius:8px;background:var(--wash);cursor:pointer;padding:10px;position:relative;overflow:hidden}
+.drop:hover,.drop.over{border-color:var(--cost);background:var(--cost-soft)}
+.drop:focus-within{outline:3px solid var(--ask);outline-offset:2px}
+.drop img{max-width:100%;max-height:230px;border-radius:5px;display:block}
+.drop .drop-text{color:var(--steel);font-size:14px}
+.drop .drop-text b{color:var(--ink)}
+.samples{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px;font-size:12.5px;color:var(--steel)}
+.err{color:var(--block);font-weight:600;margin-top:8px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media (max-width:820px){.two{grid-template-columns:1fr}}
+
+/* ---------- assessment card ---------- */
+.health{background:var(--wash);border-radius:8px;padding:14px 16px;min-height:100%}
+.health h3{font-size:22px}
+.sev{display:flex;gap:4px;margin:8px 0 2px}
+.sev i{flex:1;height:9px;border-radius:2px;background:var(--rule)}
+.sev i.on{background:var(--cost)}
+.sevl{font-size:13px;color:var(--steel);display:flex;justify-content:space-between}
+.meter{height:7px;background:var(--rule);border-radius:4px;overflow:hidden;margin:4px 0}
+.meter i{display:block;height:100%;background:var(--allow)}
+.health ul{margin:8px 0 0 18px;padding:0}
+.kv{font-size:13.5px;color:var(--steel);margin:6px 0 0}
+.kv b{color:var(--ink)}
+.src{display:inline-block;font-size:12px;font-weight:600;padding:1px 8px;border-radius:3px;background:var(--ask-bg);color:var(--ask)}
+.src.g{background:var(--allow-bg);color:var(--allow)}
+
+/* ---------- cost tab ---------- */
+.hero{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:20px}
+@media (max-width:900px){.hero{grid-template-columns:1fr}}
+.meterbox{border-left:1px solid var(--rule);padding-left:20px;min-width:0}
+@media (max-width:900px){.meterbox{border-left:0;padding-left:0;border-top:1px solid var(--rule);padding-top:12px}}
+.big{font-family:var(--display);font-weight:600;font-size:clamp(32px,3.6vw,42px);line-height:1;color:var(--cost);font-variant-numeric:tabular-nums}
+.meterbox .lbl{color:var(--steel);font-size:13.5px;margin:2px 0 14px}
+.meterbox .m2{font-family:var(--display);font-size:26px;font-variant-numeric:tabular-nums}
+svg{width:100%;height:auto;display:block}
+svg text{font-family:var(--body);font-size:11px;fill:var(--steel)}
+input[type=range]{width:100%;accent-color:var(--cost);margin:6px 0 0}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12.5px;color:var(--steel);margin:4px 0 2px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:22px;height:0;border-top:3px solid}
+.verdict{margin:12px 0 0;padding:10px 12px;border-radius:5px;font-weight:600}
+.verdict.fix{background:var(--cost-soft);color:var(--cost)}
+.verdict.wait{background:var(--ask-bg);color:var(--ask)}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:16px}
+@media (max-width:640px){.stats{grid-template-columns:1fr}}
+.stat{background:var(--wash);border-radius:6px;padding:10px 14px}
+.stat .v{font-family:var(--display);font-size:30px;font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat .v.extra{color:var(--cost)}
+.stat .l{font-size:12.5px;color:var(--steel)}
+details{margin-top:12px;font-size:13.5px;color:var(--steel)}
+summary{cursor:pointer;font-weight:600;color:var(--ink)}
+details pre{white-space:pre-wrap;background:var(--wash);padding:10px;border-radius:5px;font:12.5px/1.5 var(--body);margin:8px 0 0}
+
+/* ---------- explain ---------- */
+.voices{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+@media (max-width:820px){.voices{grid-template-columns:1fr}}
+.voice{background:var(--wash);border-radius:8px;padding:14px 16px;border-top:4px solid var(--ask)}
+.voice.cfo{border-top-color:var(--cost)}
+.voice h3{font-size:19px;margin-bottom:4px}
+.voice p{margin:0;max-width:62ch}
+.meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.meta span{font-size:12.5px;border:1px solid var(--rule);border-radius:4px;padding:1px 8px;background:var(--wash)}
+.meta span.ok{border-color:var(--allow);color:var(--allow);font-weight:600}
+
+/* ---------- gate ---------- */
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:820px){.opts{grid-template-columns:1fr}}
+.opt{display:flex;flex-direction:column;gap:6px;padding:14px 16px;border:1px solid var(--rule);border-top-width:5px;border-radius:8px;background:var(--wash)}
+.opt.ALLOW{border-top-color:var(--allow)} .opt.ASK{border-top-color:var(--ask)} .opt.BLOCK{border-top-color:var(--block)}
+.opt .hd{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.opt h3{font-size:20px}
+.opt p{margin:0;font-size:13.5px;color:var(--steel)}
+.opt .why{font-size:13.5px;margin-top:2px}
+.opt .push{margin-top:auto;padding-top:8px}
+.badge{font-family:var(--display);font-size:20px;font-weight:700;padding:0 12px;border-radius:4px;white-space:nowrap}
+.badge.ALLOW,.status.VERIFIED{background:var(--allow-bg);color:var(--allow)}
+.badge.ASK,.status.NEEDS_REVIEW{background:var(--ask-bg);color:var(--ask)}
+.badge.BLOCK,.status.NOT_VERIFIED{background:var(--block-bg);color:var(--block)}
+.dl{display:flex;gap:6px;flex-wrap:wrap}
+.dl span{font-size:12.5px;padding:0 8px;border-radius:3px;font-variant-numeric:tabular-nums}
+.dl .dn{background:var(--allow-bg);color:var(--allow)}
+.dl .up{background:var(--block-bg);color:var(--block)}
+.dl .zero{background:var(--wash);color:var(--steel);border:1px solid var(--rule)}
+
+/* ---------- verify ---------- */
+.photos{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media (max-width:820px){.photos{grid-template-columns:1fr}}
+.photos h3{font-size:19px;margin-bottom:6px}
+.frame{display:grid;place-items:center;min-height:150px;border:1px solid var(--rule);border-radius:8px;background:var(--wash);padding:10px;text-align:center;color:var(--steel);font-size:14px}
+.frame img{max-width:100%;max-height:230px;border-radius:5px;display:block}
+.vres{background:var(--wash);border-radius:8px;padding:14px 16px;margin-top:14px}
+.status{font-family:var(--display);font-size:26px;font-weight:700;padding:0 14px;border-radius:4px;display:inline-block}
+.ba{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:10px 0 4px}
+.ba .sev{width:140px;margin:0}
+.ba .arrow{color:var(--steel);font-weight:600}
+
+/* ---------- record ---------- */
+.chain{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 14px;border-radius:6px;background:var(--allow-bg);color:var(--allow);font-weight:600;margin-bottom:12px}
+.chain.bad{background:var(--block-bg);color:var(--block)}
+.tl{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.tl li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 14px;padding:12px 14px;border:1px solid var(--rule);border-radius:8px;background:var(--wash)}
+.tl .k{font-size:12px;font-weight:600;color:var(--steel)}
+.tl .s{font-size:14px}
+.tl .h{font:12px var(--mono);color:var(--steel);grid-column:1/-1}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{text-align:left;font-weight:600;color:var(--steel);padding:6px 8px;border-bottom:1px solid var(--rule)}
+td{padding:7px 8px;border-bottom:1px solid var(--rule);vertical-align:top}
+td.h{font:12px var(--mono);color:var(--steel);white-space:nowrap}
+.scroll{overflow-x:auto}
+
+footer{max-width:1520px;margin:0 auto;padding:0 clamp(16px,3vw,36px) 32px;color:var(--steel);font-size:12.5px}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:var(--paper);
+  padding:10px 16px;border-radius:6px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90vw;z-index:9}
+.toast.show{opacity:1}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;
+  vertical-align:-2px;margin-right:6px;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}.toast{transition:none}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <h1>TerraVow</h1>
+    <p>Fix it now, or wait? See what waiting costs in rupees and emissions.</p>
+  </div>
+  <div class="chips" id="chips" aria-label="System status"></div>
+</header>
+
+<div class="shell">
+  <aside class="rail">
+    <section class="card" aria-labelledby="fh">
+      <h2 id="fh">Fix-first ranking</h2>
+      <p class="sub">Machines ranked by what their current defect costs each day.</p>
+      <ul class="fleet" id="fleet"></ul>
+      <p class="note" id="fleetNote"></p>
+    </section>
+    <section class="card impact" aria-labelledby="ih">
+      <h2 id="ih">Fleet impact</h2>
+      <p class="sub">Next 30 days, if the machines marked "Fix now" are repaired.</p>
+      <div id="impact" aria-live="polite"></div>
+    </section>
+  </aside>
+
+  <main>
+    <section class="banner" id="banner" aria-live="polite"></section>
+
+    <section class="guide" id="guide" hidden>
+      <div>
+        <h3>Try it in about a minute</h3>
+        <ol>
+          <li><b>Assess:</b> load the sample photo and notes, then press Analyze with Gemini.</li>
+          <li><b>Cost of waiting:</b> drag the slider and watch the rupee figure climb.</li>
+          <li><b>Safety check:</b> see which options the gate blocks, and record one.</li>
+          <li><b>Verify repair:</b> upload an after photo. A different part is rejected.</li>
+        </ol>
+      </div>
+      <div class="row" style="margin:0">
+        <button class="btn" id="guideLoad" hidden>Load sample photo and notes</button>
+        <button class="btn ghost" id="guideHide">Hide this</button>
+      </div>
+    </section>
+
+    <nav class="steps" id="steps" role="tablist" aria-label="Workflow steps"></nav>
+
+    <!-- 1 Assess -->
+    <section class="panel" id="p-assess" role="tabpanel" aria-labelledby="t-assess">
+      <h2>Assess the condition</h2>
+      <p class="sub">Add a photo of the part and any maintenance notes. Gemini reads them and returns a structured assessment, including how sure it is.</p>
+      <div class="two">
+        <div>
+          <label class="f" for="photo">Photo of the component</label>
+          <label class="drop" id="drop" for="photo">
+            <input id="photo" class="sr" type="file" accept="image/*">
+            <img id="thumb" alt="Selected component photo" hidden>
+            <span class="drop-text" id="dropText"><b>Drop a photo here</b> or click to choose</span>
+          </label>
+          <div class="samples" id="samplesA" hidden>Sample (illustrative image): <button class="btn small ghost" id="useBefore">Use sample burner photo</button></div>
+          <label class="f" for="notes">Maintenance notes or log extract</label>
+          <textarea id="notes" placeholder="Example: Flame has turned yellow-orange for two weeks. Stack temperature up 18 C. Soot on the nozzle at last inspection."></textarea>
+          <div class="row">
+            <button class="btn" id="analyzeBtn">Analyze with Gemini</button>
+            <button class="btn ghost small" id="resetBtn" title="Clears live assessments so the demo can be re-run">Reset demo</button>
+          </div>
+          <div class="err" id="analyzeErr" role="alert"></div>
+        </div>
+        <div id="healthBox"></div>
+      </div>
+    </section>
+
+    <!-- 2 Cost -->
+    <section class="panel" id="p-cost" role="tabpanel" aria-labelledby="t-cost" hidden>
+      <h2>What waiting costs</h2>
+      <p class="sub">Drag the slider to choose how many days to defer the repair.</p>
+      <div class="hero">
+        <div>
+          <svg id="chart" viewBox="0 0 640 300" role="img" aria-label="Chart of the cost of waiting against days deferred"></svg>
+          <div class="legend" id="legend" aria-hidden="true"></div>
+          <input type="range" id="slider" min="0" max="90" value="0" aria-label="Days to defer the repair">
+          <div class="verdict" id="verdict"></div>
+        </div>
+        <div class="meterbox" aria-live="polite">
+          <div class="big" id="bigNum">₹0</div>
+          <div class="lbl" id="bigLbl">Excess cost if you wait 0 days</div>
+          <div class="m2" id="m2a">0</div><div class="lbl">Extra CO2 released (kg)</div>
+          <div class="m2" id="m2b">0</div><div class="lbl">Downtime cost saved by waiting</div>
+          <div class="m2" id="m2c">0</div><div class="lbl">Extra cost per day, today</div>
+        </div>
+      </div>
+      <h3 style="font-size:19px;margin-top:18px">Carbon footprint of what this machine makes</h3>
+      <p class="sub" style="margin-bottom:0">Direct CO2 per unit of output, healthy versus now. A customer could use this instead of an industry average.</p>
+      <div class="stats" id="fp"></div>
+      <p class="note" id="fpNote"></p>
+      <details>
+        <summary>How this is calculated</summary>
+        <pre id="formula"></pre>
+      </details>
+    </section>
+
+    <!-- 3 Explain -->
+    <section class="panel" id="p-explain" role="tabpanel" aria-labelledby="t-explain" hidden>
+      <h2>Explain it to the people who decide</h2>
+      <p class="sub">Gemini calls our verified calculator for every figure, then explains the result for each audience. It never does the arithmetic itself.</p>
+      <div class="row" style="margin-top:0"><button class="btn" id="explainBtn">Explain this decision</button></div>
+      <div class="err" id="explainErr" role="alert"></div>
+      <div id="explainBox"></div>
+    </section>
+
+    <!-- 4 Gate -->
+    <section class="panel" id="p-gate" role="tabpanel" aria-labelledby="t-gate" hidden>
+      <h2>Safety check on each option</h2>
+      <p class="sub">The Decision Gate blocks anything that raises total emissions or only moves pollution from air to water, however confident the model is.</p>
+      <div class="opts" id="opts"></div>
+    </section>
+
+    <!-- 5 Verify -->
+    <section class="panel" id="p-verify" role="tabpanel" aria-labelledby="t-verify" hidden>
+      <h2>After the repair: verify the improvement</h2>
+      <p class="sub">Gemini compares the after photo with the original. An improvement is recorded only if it is the same component and the evidence supports it. This is an evidence record, not an official certification.</p>
+      <div class="photos">
+        <div>
+          <h3>Before (original assessment)</h3>
+          <div class="frame" id="beforeFrame"></div>
+        </div>
+        <div>
+          <h3>After repair</h3>
+          <label class="drop" id="vdrop" for="vphoto">
+            <input id="vphoto" class="sr" type="file" accept="image/*">
+            <img id="vthumb" alt="Selected after-repair photo" hidden>
+            <span class="drop-text" id="vdropText"><b>Drop the after photo here</b> or click to choose</span>
+          </label>
+          <div class="samples" id="samplesV" hidden>Samples (illustrative images):
+            <button class="btn small ghost" id="useAfterSame" hidden>Same nozzle, cleaned</button>
+            <button class="btn small ghost" id="useAfterDiff" hidden>A different part</button>
+          </div>
+        </div>
+      </div>
+      <label class="f" for="vnotes">What was done</label>
+      <textarea id="vnotes" placeholder="Example: Nozzle cleaned and swirl vanes replaced. Flame is blue and stable again."></textarea>
+      <div class="row"><button class="btn" id="verifyBtn">Verify improvement</button></div>
+      <div class="err" id="verifyErr" role="alert"></div>
+      <div id="vbox" aria-live="polite"></div>
+      <h3 style="font-size:19px;margin-top:20px">Verified improvements</h3>
+      <div class="scroll"><table>
+        <thead><tr><th>Time</th><th>Machine</th><th>Severity</th><th>CO2 avoided (30 days)</th><th>Entry hash</th></tr></thead>
+        <tbody id="vlist"></tbody>
+      </table></div>
+    </section>
+
+    <!-- 6 Record -->
+    <section class="panel" id="p-record" role="tabpanel" aria-labelledby="t-record" hidden>
+      <h2>Decision record</h2>
+      <p class="sub">Every assessment, explanation, decision and verification is saved with a hash of the entry before it, so an edit after the fact is detectable.</p>
+      <div class="chain" id="chain"></div>
+      <ul class="tl" id="reg"></ul>
+    </section>
+  </main>
+</div>
+<footer>Synthetic demo fleet with illustrative values, not real plant data. Sample photos are illustrative images. Not legal, tax or engineering advice, and not an official certification.</footer>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const STEPS = [
+  { id: "assess", label: "Assess" }, { id: "cost", label: "Cost of waiting" }, { id: "explain", label: "Explain" },
+  { id: "gate", label: "Safety check" }, { id: "verify", label: "Verify repair" }, { id: "record", label: "Record" }];
+const SEV = { 1: "Cosmetic", 2: "Minor", 3: "Moderate", 4: "Serious", 5: "Severe" };
+const KIND = { condition_assessment: "Assessment", explanation: "Explanation", decision: "Decision", verified_improvement: "Verification" };
+const S = { fleet: [], id: "B-2", d: null, day: 0, step: "assess", done: new Set(), samples: {}, explain: null };
+const inr = (n) => "₹" + Math.round(n).toLocaleString("en-IN");
+const num = (v, d = 1) => v.toLocaleString("en-IN", { maximumFractionDigits: d });
+const short = (n) => n >= 1e5 ? "₹" + (n / 1e5).toFixed(1).replace(/\.0$/, "") + "L" : "₹" + Math.round(n / 1000) + "k";
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function el(tag, attrs = {}, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") e.className = v; else if (k === "text") e.textContent = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v); else e.setAttribute(k, v);
+  }
+  for (const c of kids) if (c != null) e.append(c.nodeType ? c : document.createTextNode(c));
+  return e;
+}
+function toast(msg) { const t = $("toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("show"), 3400); }
+async function api(path, opts) {
+  const r = await fetch(path, opts);
+  if (!r.ok) { let m = r.statusText; try { m = (await r.json()).detail || m; } catch (e) {} throw new Error(m); }
+  return r.json();
+}
+const sevBar = (sev) => el("div", { class: "sev", role: "img", "aria-label": `Severity ${sev} of 5` }, ...[1, 2, 3, 4, 5].map(i => el("i", { class: i <= sev ? "on" : "" })));
+const unitPlural = (u) => u.startsWith("tonne ") ? "tonnes " + u.slice(6) : u;
+
+/* ================= steps ================= */
+function renderTabs() {
+  $("steps").replaceChildren(...STEPS.map((s, i) => el("button", {
+    role: "tab", id: "t-" + s.id, "aria-controls": "p-" + s.id, "aria-selected": String(S.step === s.id),
+    tabindex: S.step === s.id ? "0" : "-1", class: S.done.has(s.id) ? "done" : "",
+    onclick: () => setStep(s.id),
+    onkeydown: (e) => {
+      const k = { ArrowRight: 1, ArrowLeft: -1 }[e.key]; if (!k) return; e.preventDefault();
+      const j = (i + k + STEPS.length) % STEPS.length; setStep(STEPS[j].id); $("t-" + STEPS[j].id).focus();
+    } }, el("span", { class: "n", text: S.done.has(s.id) ? "✓" : String(i + 1) }), s.label)));
+}
+function setStep(id) {
+  S.step = id;
+  for (const s of STEPS) $("p-" + s.id).hidden = s.id !== id;
+  renderTabs();
+  if (id === "record") loadRegistry();
+  if (id === "verify") { renderBefore(); loadImprovements(); }
+  if (id === "cost") moveCursor();
+}
+function mark(id) { if (!S.done.has(id)) { S.done.add(id); renderTabs(); } }
+function addNavs() {
+  STEPS.forEach((s, i) => {
+    const p = $("p-" + s.id), nav = el("div", { class: "pnav" },
+      i > 0 ? el("button", { class: "btn ghost", onclick: () => setStep(STEPS[i - 1].id) }, "Back: " + STEPS[i - 1].label) : el("span"),
+      i < STEPS.length - 1 ? el("button", { class: "btn", onclick: () => setStep(STEPS[i + 1].id) }, "Next: " + STEPS[i + 1].label) : el("span"));
+    p.append(nav);
+  });
+}
+
+/* ================= status + fleet ================= */
+async function loadHealth() {
+  try {
+    const h = await api("/api/health");
+    $("chips").replaceChildren(
+      el("span", { class: "chip " + (h.gemini_mode !== "not-configured" ? "ok" : "warn") }, "Gemini: ", el("b", { text: h.gemini_mode + " / " + h.gemini_model })),
+      el("span", { class: "chip " + (h.store_backend === "firestore" ? "ok" : "warn") }, "Store: ", el("b", { text: h.store_backend })),
+      el("span", { class: "chip" }, "Runtime: ", el("b", { text: h.runtime })));
+  } catch (e) { $("chips").replaceChildren(el("span", { class: "chip warn", text: "API unreachable" })); }
+}
+async function loadFleet() {
+  const f = await api("/api/fleet");
+  S.fleet = f.machines; $("fleetNote").textContent = f.label; loadImpact();
+  const max = Math.max(...S.fleet.map(m => m.daily_liability_today));
+  $("fleet").replaceChildren(...S.fleet.map(m => el("li", {}, el("button", { "aria-current": m.id === S.id ? "true" : "false", onclick: () => select(m.id) },
+    el("span", { class: "rk", text: m.rank }),
+    el("span", { class: "nm" }, m.name, el("span", { class: "tag " + (m.recommendation === "FIX_NOW" ? "fix" : "wait"), text: m.recommendation === "FIX_NOW" ? "Fix now" : "Can wait" })),
+    el("span", { class: "rs" }, inr(m.daily_liability_today), el("small", { text: "per day" })),
+    el("span", { class: "df", text: m.health.defect || "" }),
+    el("span", { class: "bar" }, el("i", { style: `width:${(m.daily_liability_today / max * 100).toFixed(0)}%` }))))));
+}
+async function loadImpact() {
+  try {
+    const i = await api("/api/impact"), n = i.fix_now_ids.length;
+    $("impact").replaceChildren(
+      el("div", { class: "v", text: num(i.fix_now_co2_t) + " t CO2" }),
+      el("p", { class: "l", text: n ? `avoided by repairing ${n} "Fix now" machine${n === 1 ? "" : "s"} (${i.fix_now_ids.join(", ")})` : "No machine is marked Fix now right now" }),
+      el("div", { class: "v", text: inr(i.fix_now_cost) }),
+      el("p", { class: "l", text: "excess fuel and exposure cost avoided, before repair and downtime costs" }),
+      el("p", { class: "note", text: `The whole fleet loses ${inr(i.fleet_daily_liability)} a day to defects. Illustrative demo values.` }));
+  } catch (e) { $("impact").textContent = "Impact unavailable."; }
+}
+
+/* ================= machine ================= */
+async function select(id) {
+  S.id = id; S.explain = null; $("explainBox").replaceChildren(); $("vbox").replaceChildren();
+  for (const e of ["explainErr", "verifyErr", "analyzeErr"]) $(e).textContent = "";
+  S.d = await api("/api/machine/" + id);
+  S.day = Math.min(S.d.planned_window_day, 90); $("slider").value = S.day;
+  renderAll(); loadFleet();
+}
+function renderAll() { renderBanner(); renderHealth(); renderChart(); renderFootprint(); renderOptions(); renderBefore(); }
+
+function renderBanner() {
+  const d = S.d, fix = d.recommendation === "FIX_NOW", gap = Math.abs(d.waiting_cost_at_window - d.downtime_savings_if_wait), f = d.footprint;
+  const verified = !!d.health.verified;
+  const why = verified
+    ? `Repair verified by comparing the before and after photos. The remaining extra cost is ${inr(d.daily_liability_today)} a day.`
+    : fix
+    ? `Waiting for the day ${d.planned_window_day} shutdown costs ${inr(gap)} more than it saves. Break-even is day ${d.break_even_day}.`
+    : `Waiting for the day ${d.planned_window_day} shutdown still saves ${inr(gap)} compared with stopping now.` + (d.break_even_day ? ` After day ${d.break_even_day}, waiting stops paying.` : "");
+  const kpi = (v, l, hot) => el("div", { class: "kpi" }, el("div", { class: "v " + (hot ? "hot" : ""), text: v }), el("div", { class: "l", text: l }));
+  $("banner").replaceChildren(
+    el("div", {},
+      el("p", { class: "eyebrow", text: `${d.kind}, runs on ${d.fuel.toLowerCase()}, about ${num(d.base_fuel_per_day, 0)} ${d.fuel_unit} a day` }),
+      el("h2", {}, d.name, el("span", { class: "pill " + (verified ? "ok" : fix ? "fix" : "wait"), text: verified ? "REPAIR VERIFIED" : fix ? "FIX NOW" : "CAN WAIT" })),
+      el("p", { class: "why", text: why })),
+    el("div", { class: "kpis" },
+      kpi(inr(d.daily_liability_today), "extra cost per day", true),
+      kpi(num(d.excess_co2_kg_per_day, 0) + " kg", "extra CO2 per day"),
+      kpi(d.break_even_day ? "Day " + d.break_even_day : "None", d.break_even_day ? "break-even" : "break-even within 90 days"),
+      kpi("+" + num(f.extra_pct) + "%", "extra CO2 per " + f.unit)));
+}
+
+function renderHealth() {
+  const h = S.d.health, g = h.source === "gemini", conf = Math.round((h.confidence || 0) * 100);
+  $("healthBox").replaceChildren(el("div", { class: "health" },
+    el("span", { class: "src " + (g ? "g" : ""), text: g ? "Gemini assessment" : "Seeded demo value, not yet assessed" }),
+    el("h3", { text: h.component_name || "Component", style: "margin-top:6px" }),
+    el("p", { class: "kv", style: "margin-top:2px" }, el("b", { text: h.defect || "" })),
+    sevBar(h.severity),
+    el("div", { class: "sevl" }, el("span", { text: `Severity ${h.severity} of 5` }), el("span", { text: SEV[h.severity] || "" })),
+    el("p", { class: "kv" }, "Confidence ", el("b", { text: conf + "%" }), "  |  Data trust ", el("b", { text: Math.round(S.d.data_trust * 100) + "%" }),
+      g ? (h.had_image ? " (photo and notes)" : " (notes only, capped at 70%)") : ""),
+    el("div", { class: "meter", role: "img", "aria-label": `Confidence ${conf} percent` }, el("i", { style: `width:${conf}%` })),
+    (h.evidence && h.evidence.length) ? el("ul", {}, ...h.evidence.map(t => el("li", { text: t }))) : null,
+    h.uncertainty ? el("p", { class: "kv" }, "Unsure about: ", el("b", { text: h.uncertainty })) : null,
+    h.suggested_inspection ? el("p", { class: "kv" }, "Confirm by: ", el("b", { text: h.suggested_inspection })) : null));
+}
+
+/* ================= chart ================= */
+function renderChart() {
+  const d = S.d, c = d.curve, W = 640, H = 300, L = 54, R = 14, T = 16, B = 38;
+  const maxY = Math.max(d.downtime_savings_if_wait * 1.25, c[c.length - 1].waiting_cost * 1.05, 1);
+  const x = (day) => L + (day / 90) * (W - L - R), y = (v) => T + (1 - v / maxY) * (H - T - B);
+  const path = c.map((p, i) => (i ? "L" : "M") + x(p.day).toFixed(1) + " " + y(p.waiting_cost).toFixed(1)).join(" ");
+  const area = path + ` L ${x(90)} ${y(0)} L ${x(0)} ${y(0)} Z`;
+  let h = "";
+  for (let i = 0; i <= 4; i++) { const v = maxY * i / 4; h += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--rule)"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${i ? short(v) : "₹0"}</text>`; }
+  for (const dd of [0, 15, 30, 45, 60, 75, 90]) h += `<text x="${x(dd)}" y="${H - 20}" text-anchor="middle">${dd}</text>`;
+  h += `<text x="${(L + W - R) / 2}" y="${H - 5}" text-anchor="middle">Days the repair is deferred</text>`;
+  h += `<path d="${area}" fill="var(--cost-soft)"/><path d="${path}" fill="none" stroke="var(--cost)" stroke-width="2.5"/>`;
+  const ys = y(d.downtime_savings_if_wait);
+  h += `<line x1="${L}" x2="${W - R}" y1="${ys}" y2="${ys}" stroke="var(--allow)" stroke-width="2" stroke-dasharray="6 4"/>`;
+  const pw = Math.min(d.planned_window_day, 90);
+  h += `<line x1="${x(pw)}" x2="${x(pw)}" y1="${T}" y2="${H - B}" stroke="var(--ask)" stroke-width="1.5" stroke-dasharray="2 3"/><text x="${x(pw) + 4}" y="${T + 10}" style="fill:var(--ask);font-weight:600">Planned shutdown, day ${d.planned_window_day}</text>`;
+  if (d.break_even_day) {
+    const bx = x(d.break_even_day), by = y(c[d.break_even_day].waiting_cost), right = bx < W * 0.62;
+    h += `<line x1="${bx}" x2="${bx}" y1="${T}" y2="${H - B}" stroke="var(--cost)" stroke-width="1.5"/><circle cx="${bx}" cy="${by}" r="5.5" fill="var(--cost)"/>`;
+    h += `<text x="${bx + (right ? 8 : -8)}" y="${H - B - 8}" text-anchor="${right ? "start" : "end"}" style="fill:var(--cost);font-weight:600;font-size:12px">Break-even, day ${d.break_even_day}</text>`;
+  }
+  h += `<g id="cursor"></g>`;
+  $("chart").innerHTML = h;
+  $("legend").replaceChildren(
+    el("span", {}, el("i", { style: "border-color:var(--cost)" }), "Cost of waiting"),
+    el("span", {}, el("i", { style: "border-top-style:dashed;border-color:var(--allow)" }), "Downtime saved by waiting: " + inr(d.downtime_savings_if_wait)),
+    el("span", {}, el("i", { style: "border-top-style:dotted;border-color:var(--ask)" }), "Planned shutdown"),
+    el("span", {}, el("i", { style: "border-color:var(--ink)" }), "Your chosen day"));
+  S._x = x; S._y = y; moveCursor();
+  $("formula").textContent = d.formula + "\n\nAssumptions (illustrative):\n" + JSON.stringify(d.assumptions, null, 2);
+}
+let tw;
+function moveCursor() {
+  const d = S.d, cur = document.getElementById("cursor"); if (!d || !cur) return;
+  const p = d.curve[S.day], cx = S._x(S.day), cy = S._y(p.waiting_cost);
+  cur.innerHTML = `<line x1="${cx}" x2="${cx}" y1="${cy}" y2="${S._y(0)}" stroke="var(--ink)" stroke-width="1"/><circle cx="${cx}" cy="${cy}" r="6" fill="var(--panel)" stroke="var(--ink)" stroke-width="2.5"/>`;
+  const target = p.cum_liability, from = +$("bigNum").dataset.v || 0; $("bigNum").dataset.v = target; cancelAnimationFrame(tw);
+  if (reduce) $("bigNum").textContent = inr(target);
+  else { const t0 = performance.now(); (function step(t) { const k = Math.min(1, (t - t0) / 220); $("bigNum").textContent = inr(from + (target - from) * k); if (k < 1) tw = requestAnimationFrame(step); })(t0); }
+  $("bigLbl").textContent = `Excess cost if you wait ${S.day} day${S.day === 1 ? "" : "s"}`;
+  $("m2a").textContent = num(p.cum_co2_kg, 0); $("m2b").textContent = inr(d.downtime_savings_if_wait); $("m2c").textContent = inr(d.daily_liability_today);
+  const worse = p.waiting_cost > d.downtime_savings_if_wait, net = Math.abs(d.downtime_savings_if_wait - p.waiting_cost), v = $("verdict");
+  v.className = "verdict " + (worse ? "fix" : "wait");
+  v.textContent = worse ? `Waiting ${S.day} days costs ${inr(net)} more than it saves. Fix it before day ${d.break_even_day || S.day}.`
+                        : `Waiting ${S.day} days still saves ${inr(net)} compared with stopping now.`;
+}
+function renderFootprint() {
+  const f = S.d.footprint, u = f.unit;
+  const stat = (v, l, cls) => el("div", { class: "stat" }, el("div", { class: "v " + (cls || ""), text: v }), el("div", { class: "l", text: l }));
+  $("fp").replaceChildren(
+    stat(num(f.healthy_kg_per_unit) + " kg", `CO2 per ${u} when healthy`),
+    stat(num(f.current_kg_per_unit) + " kg", `CO2 per ${u} now`),
+    stat("+" + num(f.extra_kg_per_unit) + " kg (+" + num(f.extra_pct) + "%)", `extra per ${u} caused by the defect`, "extra"));
+  $("fpNote").textContent = `Based on about ${num(f.output_per_day)} ${unitPlural(u)} a day. Illustrative demo values.`;
+}
+
+/* ================= gate ================= */
+function renderOptions() {
+  $("opts").replaceChildren(...S.d.options.map(o => {
+    const chips = Object.entries(o.deltas_kg).map(([k, v]) => el("span", { class: v < 0 ? "dn" : v > 0 ? "up" : "zero", text: `${k} ${v > 0 ? "+" : v < 0 ? "-" : ""}${num(Math.abs(v), 0)} kg` }));
+    return el("div", { class: "opt " + o.gate.verdict },
+      el("div", { class: "hd" }, el("h3", { text: o.label }), el("span", { class: "badge " + o.gate.verdict, text: o.gate.verdict })),
+      el("p", { text: o.detail }),
+      el("div", { class: "dl", "aria-label": "Change in emissions over the next 30 days" }, ...chips),
+      el("p", { class: "why" }, el("b", { text: "Why: " }), o.gate.reason),
+      el("div", { class: "push" }, el("button", { class: "btn small ghost", onclick: (e) => decide(o.id, e.target) }, "Record this decision")));
+  }));
+}
+async function decide(optId, btn) {
+  btn.disabled = true;
+  try {
+    const r = await api("/api/decide", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ machine_id: S.id, option_id: optId }) });
+    toast(`Recorded: ${r.option.label} is ${r.audit.verdict}`); mark("gate");
+  } catch (e) { toast(e.message); }
+  btn.disabled = false;
+}
+
+/* ================= photos + samples ================= */
+function setInputFile(input, file) {
+  try { const dt = new DataTransfer(); dt.items.add(file); input.files = dt.files; } catch (e) {}
+  input.dispatchEvent(new Event("change"));
+}
+function wireDrop(dropId, inputId, imgId, textId) {
+  const drop = $(dropId), input = $(inputId), img = $(imgId), txt = $(textId);
+  input.addEventListener("change", () => {
+    const f = input.files[0];
+    if (f) { img.src = URL.createObjectURL(f); img.hidden = false; txt.hidden = true; } else { img.hidden = true; txt.hidden = false; }
+  });
+  ["dragenter", "dragover"].forEach(ev => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("over"); }));
+  ["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove("over"); }));
+  drop.addEventListener("drop", (e) => { const f = e.dataTransfer.files[0]; if (f && f.type.startsWith("image/")) setInputFile(input, f); });
+}
+async function loadSamples() {
+  try {
+    const m = await (await fetch("/static/samples/manifest.json")).json();
+    for (const [k, v] of Object.entries(m)) {
+      const r = await fetch("/static/samples/" + v.file, { method: "HEAD" });
+      if (r.ok) S.samples[k] = v;
+    }
+  } catch (e) {}
+  $("samplesA").hidden = !S.samples.before; $("guideLoad").hidden = !S.samples.before;
+  $("samplesV").hidden = !(S.samples.after_same || S.samples.after_different);
+  $("useAfterSame").hidden = !S.samples.after_same; $("useAfterDiff").hidden = !S.samples.after_different;
+}
+async function useSample(key, inputId, notesId) {
+  const s = S.samples[key]; if (!s) return;
+  const blob = await (await fetch("/static/samples/" + s.file)).blob();
+  setInputFile($(inputId), new File([blob], s.file, { type: blob.type || "image/jpeg" }));
+  if (s.notes && !$(notesId).value.trim()) $(notesId).value = s.notes;
+  else if (s.notes && notesId === "vnotes") $(notesId).value = s.notes;
+}
+function renderBefore() {
+  const f = $("beforeFrame"), d = S.d; if (!d) return;
+  if (d.has_baseline_photo) f.replaceChildren(el("img", { src: `/api/machine/${d.id}/baseline?t=${Date.now()}`, alt: "Original photo from the assessment" }));
+  else f.replaceChildren(el("span", { text: "No original photo on record. Assess this machine with a photo in step 1 first, so there is something to compare against." }));
+}
+
+/* ================= actions ================= */
+$("analyzeBtn").addEventListener("click", async () => {
+  const btn = $("analyzeBtn"), err = $("analyzeErr"); err.textContent = "";
+  const fd = new FormData(); fd.append("machine_id", S.id); fd.append("notes", $("notes").value);
+  const f = $("photo").files[0]; if (f) fd.append("image", f);
+  btn.disabled = true; btn.replaceChildren(el("span", { class: "spin" }), "Gemini is reading it");
+  try {
+    const before = S.fleet.findIndex(m => m.id === S.id);
+    S.d = await api("/api/analyze", { method: "POST", body: fd });
+    S.explain = null; $("explainBox").replaceChildren();
+    S.day = Math.min(S.d.planned_window_day, 90); $("slider").value = S.day;
+    renderAll(); await loadFleet(); mark("assess");
+    const after = S.fleet.findIndex(m => m.id === S.id);
+    toast(after !== before ? `Fleet re-ranked: ${S.d.name} moved to #${after + 1}` : "Assessment saved");
+  } catch (e) { err.textContent = e.message; }
+  btn.disabled = false; btn.textContent = "Analyze with Gemini";
+});
+$("resetBtn").addEventListener("click", async () => { await api("/api/demo/reset", { method: "POST" }); S.done.clear(); renderTabs(); await select(S.id); toast("Demo reset"); });
+$("slider").addEventListener("input", (e) => { S.day = +e.target.value; moveCursor(); mark("cost"); });
+$("explainBtn").addEventListener("click", async () => {
+  const btn = $("explainBtn"), err = $("explainErr"); err.textContent = "";
+  btn.disabled = true; btn.replaceChildren(el("span", { class: "spin" }), "Gemini is checking the numbers");
+  try {
+    S.explain = await api("/api/explain", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ machine_id: S.id, defer_days: S.day }) });
+    renderExplain(); mark("explain");
+  } catch (e) { err.textContent = e.message; }
+  btn.disabled = false; btn.textContent = "Explain this decision";
+});
+function renderExplain() {
+  const x = S.explain; if (!x) return;
+  $("explainBox").replaceChildren(
+    el("div", { class: "voices" },
+      el("div", { class: "voice" }, el("h3", { text: "For the engineer" }), el("p", { text: x.engineer || "" })),
+      el("div", { class: "voice cfo" }, el("h3", { text: "For the CFO" }), el("p", { text: x.cfo || "" }))),
+    x.caveat ? el("p", { class: "kv", text: "Limits: " + x.caveat }) : null,
+    el("div", { class: "meta" },
+      el("span", { class: "ok", text: `${x.tool_calls} verified calculator call${x.tool_calls === 1 ? "" : "s"}` }),
+      ...(x.citations || []).map(c => el("span", { text: "Cites " + c })),
+      el("span", { text: "Model: " + (x.model || "") })));
+}
+$("verifyBtn").addEventListener("click", async () => {
+  const btn = $("verifyBtn"), err = $("verifyErr"); err.textContent = "";
+  const fd = new FormData(); fd.append("machine_id", S.id); fd.append("notes", $("vnotes").value);
+  const f = $("vphoto").files[0]; if (f) fd.append("image", f);
+  btn.disabled = true; btn.replaceChildren(el("span", { class: "spin" }), "Gemini is comparing the photos");
+  try {
+    const r = await api("/api/verify_improvement", { method: "POST", body: fd }), im = r.improvement, cc = r.component_check;
+    $("vbox").replaceChildren(el("div", { class: "vres" },
+      el("span", { class: "status " + r.status, text: r.status.replace("_", " ") }),
+      el("div", { class: "ba" }, sevBar(im.before_severity), el("span", { class: "arrow", text: "became" }), sevBar(im.after_severity)),
+      el("p", { class: "kv" }, r.gate.reason),
+      cc && cc.same !== null ? el("p", { class: "kv" }, "Component check: ", el("b", { text: (cc.same ? "same part" : "different part") + " (" + Math.round(cc.confidence * 100) + "% sure)" }), cc.reason ? ". " + cc.reason : "") : null,
+      (r.status === "VERIFIED" && im.avoided_co2_kg_horizon > 0) ? el("p", { class: "kv" }, "Avoids ", el("b", { text: num(im.avoided_co2_kg_horizon / 1000) + " t CO2" }), " and ", el("b", { text: inr(im.avoided_cost_horizon) }), ` over ${im.horizon_days} days. Footprint falls from `, el("b", { text: num(im.footprint_before.current_kg_per_unit) }), " to ", el("b", { text: num(im.footprint_after.current_kg_per_unit) }), ` kg CO2 per ${im.footprint_after.unit}.`) : null,
+      (r.status === "NEEDS_REVIEW" && im.avoided_co2_kg_horizon > 0) ? el("p", { class: "kv" }, "If a person confirms it, this would avoid about ", el("b", { text: num(im.avoided_co2_kg_horizon / 1000) + " t CO2" }), ` over ${im.horizon_days} days.`) : null,
+      el("p", { class: "kv" }, "Gate rule: ", el("b", { text: r.gate.rule }))));
+    S.d = r.machine; S.explain = null; $("explainBox").replaceChildren();
+    S.day = Math.min(S.d.planned_window_day, 90); $("slider").value = S.day;
+    renderAll(); await loadFleet(); loadImprovements();
+    if (r.status === "VERIFIED") mark("verify");
+    toast(r.status === "VERIFIED" ? "Improvement verified and recorded" : "Not verified: " + r.status.replace("_", " ").toLowerCase());
+  } catch (e) { err.textContent = e.message; }
+  btn.disabled = false; btn.textContent = "Verify improvement";
+});
+async function loadImprovements() {
+  const r = await api("/api/improvements");
+  $("vlist").replaceChildren(...(r.entries.length ? r.entries.map(e => el("tr", {},
+    el("td", { text: e.ts }), el("td", { text: e.machine }), el("td", { text: `${e.before_severity} to ${e.after_severity}` }),
+    el("td", { text: num(e.avoided_co2_kg_horizon / 1000) + " t" }), el("td", { class: "h", text: e.hash.slice(0, 10) }))) :
+    [el("tr", {}, el("td", { colspan: 5, text: "None yet. Verified improvements appear here with the evidence behind each. " + r.disclaimer }))]));
+}
+async function loadRegistry() {
+  const r = await api("/api/registry");
+  $("chain").className = "chain" + (r.chain.chain_intact ? "" : " bad");
+  $("chain").textContent = `${r.chain.chain_intact ? "Chain intact" : "Chain BROKEN"} across ${r.chain.entries_checked} entries. Saved in ${r.backend === "firestore" ? "Firestore" : "memory (local mode)"}.`;
+  $("reg").replaceChildren(...(r.entries.length ? r.entries.map(e => el("li", {},
+    el("div", {}, el("div", { class: "k", text: `${KIND[e.kind] || e.kind}  |  ${e.machine}  |  ${e.ts}` }), el("div", { class: "s", text: e.summary })),
+    e.verdict ? el("span", { class: "badge " + e.verdict, text: e.verdict }) : el("span"),
+    el("div", { class: "h", text: `hash ${e.hash.slice(0, 12)} after ${e.prev_hash.slice(0, 8)}` }))) :
+    [el("li", {}, el("div", { class: "s", text: "Nothing recorded yet. Run an assessment or record a decision." }))]));
+}
+
+/* ================= init ================= */
+wireDrop("drop", "photo", "thumb", "dropText");
+wireDrop("vdrop", "vphoto", "vthumb", "vdropText");
+$("useBefore").addEventListener("click", () => useSample("before", "photo", "notes"));
+$("useAfterSame").addEventListener("click", () => useSample("after_same", "vphoto", "vnotes"));
+$("useAfterDiff").addEventListener("click", () => useSample("after_different", "vphoto", "vnotes"));
+$("guideLoad").addEventListener("click", () => { useSample("before", "photo", "notes"); setStep("assess"); toast("Sample loaded. Press Analyze with Gemini."); });
+$("guideHide").addEventListener("click", () => { $("guide").hidden = true; try { localStorage.setItem("tv_guide", "1"); } catch (e) {} });
+(async function init() {
+  addNavs(); renderTabs();
+  let hide = false; try { hide = localStorage.getItem("tv_guide") === "1"; } catch (e) {}
+  $("guide").hidden = hide;
+  await loadHealth(); await loadFleet(); await select("B-2"); loadSamples();
+})();
+</script>
+</body>
+</html>
